@@ -59,13 +59,25 @@
 			// you may also add code outside of the function (e.g., global variables)
 			function myGradientInteraction(){
 				var tool = new paper.Tool();
-
+        var rec = new paper.Rectangle(new paper.Point(225,275), new paper.Point(500,400));
+        var path = new paper.Path.Rectangle(rec);
+        path.fillColor = 'red';
+        var down;
 				tool.onMouseDown = function (event) {
-
+             down = event.point;
 				}
 
 				tool.onMouseUp = function (event) {
-					
+            var up = event.point;
+					  var color1 = cp.history[cp.history.length-2];
+            var color2 = cp.history[cp.history.length-1];
+            path.fillColor = {
+              gradient: {
+                stops: [color1,color2]
+              },
+              origin: down,
+              destination: up
+            };
 				}
 			}
 
@@ -85,7 +97,7 @@
 
 			// create a color palette with the given colors
 			function createColorPalette(colors){
-
+              
 				// create a swatch for each color
 				for (var i = colors.length - 1; i >= 0; i--) {
 					var $swatch = $("<div>").css("background-color", colors[i])
