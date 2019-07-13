@@ -140,7 +140,7 @@
       
       // Returns a brightness gradient of a certain hue given hueVal with constant saturation 1.
       function helperBrightnessGradientGenerator(hueVal) {
-          brightnessGradientLst = [];
+          var brightnessGradientLst = [];
           for (var i = 0, l = 5; i < l; i++) {
             var brightness = 1 - (i / l) * 1.5;
 	          var color = {
@@ -150,6 +150,22 @@
 	        };
           brightnessGradientLst.push(color);
         }
+        return brightnessGradientLst;
+      }
+      
+      // Same as above except a saturation gradient with constant brightness .87.
+      function helperSaturationGradientGenerator(hueVal) {
+          var saturationGradientLst = [];
+          for (var i = 0, l = 5; i < l; i++) {
+            var sat = 1 - (i / l) * 1.5;
+	          var color = {
+		          hue: hueVal,
+		          saturation: sat,
+		          brightness: .87
+	        };
+          saturationGradientLst.push(color);
+        }
+        return saturationGradientLst;
       }
       
       //Direction: true -> takes in a list of [r, g, b] values and returns a HEX string 
