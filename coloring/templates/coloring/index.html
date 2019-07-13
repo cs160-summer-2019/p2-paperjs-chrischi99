@@ -72,7 +72,13 @@
 				var tool = new paper.Tool();
         var rec = new paper.Rectangle(new paper.Point(225,275), new paper.Point(500,400));
         var path = new paper.Path.Rectangle(rec);
-        path.fillColor = "red";
+        path.fillColor = {
+        gradient: {
+            stops: ['red', 'green', 'blue']
+        },
+        origin: topLeft,
+        destination: bottomRight
+        }
         var down;
 				tool.onMouseDown = function (event) {
              down = event.point;
@@ -95,14 +101,32 @@
 			// your custom interaction goes here!
 			// you may replace everything
 			function myCustomInteraction() {
+        // http://paperjs.org/examples/radial-rainbows/ for rainbow gradiantion and color structure
+        //https://groups.google.com/forum/#!topic/paperjs/yzP7TbH-oCs <- read me?
+        var huesLst = [];
+        for (var i = 0, l = 7; i < l; i++) {
+          var brightness = .87;
+	        var hue = (i / l) * 256;
+	        var color = {
+		      hue: hue,
+		      saturation: 1,
+		      brightness: brightness
+	      };
+	       huesLst.push(color);
+       }
+        
         var width = paper.view.size.width;
         var height = paper.view.size.height;
 				var tool = new paper.Tool();
-        var rec = new paper.Rectangle(new paper.Point(width*.95, 0), new paper.Point(width,height));
+        var rec = new paper.Rectangle(new paper.Point(width*.75, 0), new paper.Point(width,height));
         var path = new paper.Path.Rectangle(rec);
-        path.fillColor = helperRGBtoHex([155,55,55],true);
-        
-        
+        path.fillColor = {
+          gradient: {//['red', 'orange', 'yellow', 'lime', 'blue', 'purple']
+          stops: huesLst
+        },
+          origin: path.bounds.topCenter,
+          destination: path.bounds.bottomCenter
+        };      
         
 
 				tool.onMouseDown = function (event) {
@@ -114,6 +138,22 @@
 
 			}
       
+      // Returns a brightness gradient of a certain hue given hueVal with constant saturation 1.
+      function helperBrightnessGradientGenerator(hueVal) {
+          brightnessGradientLst = [];
+          for (var i = 0, l = 5; i < l; i++) {
+            var brightness = 1 - (i / l) * 1.5;
+	          var color = {
+		          hue: hueVal,
+		          saturation: 1,
+		          brightness: brightness
+	        };
+          brightnessGradientLst.push(color);
+        }
+      }
+      
+      //Direction: true -> takes in a list of [r, g, b] values and returns a HEX string 
+      //Direction: false -> or takes in HEX string and returns list of r, g, b, values.
       function helperRGBtoHex(lst, direction) {
         // toString-Parseint 16 referenced https://stackoverflow.com/questions/57803/how-to-convert-decimal-to-hexadecimal-in-javascript
         if (direction) { //RGB to Hex
@@ -129,11 +169,12 @@
           return [r, g, b];
         }
       }
-      
+      //Takes in the value of H,S, and V, a direction(true/false), and returns a Hex string 
       function helperHSVtoHex(h,s,v,direction) {
            helperRGBtoHex(hsvToRgb(h, s, v),direction);
       }
       
+      //Converts HSV values [0,1] to RGB in [r,g,b] list format
       function hsvToRgb(h, s, v) {
          //reference at https://bgrins.github.io/TinyColor/docs/tinycolor.html
           h = bound01(h, 360) * 6;
@@ -148,18 +189,22 @@
           r = [v, q, p, p, t, v][mod],
           g = [t, v, v, q, p, p][mod],
           b = [p, p, t, v, v, q][mod];
-          return [r * 255,g * 255,b * 255 ];     
-}  
+          return [r * 255,g * 255,b * 255 ];
+      }  
+      
+      //Returns the color of the pixel at coords X, Y in [r, g, b] format
       function helperColorAtPixel(x,y) {
         //reference at https://stackoverflow.com/questions/17221802/canvas-eyedropper
          var pxData = ctx.getImageData(x,y,1,1);
          return [ pxData.data[0], pxData.data[1], pxData.data[2] ];
       }
       
-      function helperStoreAction(prevHex, currHex, coords, name) {
+      //Takes in two RGB lists [r, g, b] of the prev and next color for a location
+      // at coords triggered by action of name and appends it to the end of stack _UNDO_STACK
+      function helperStoreAction(prevRGBLst, currRGBLst, coords, name) {
         var currAction = {
-				  prevColor: prevHex, 
-          currColor: currHex, 
+				  prevColor: prevRGBLst, 
+          currColor: currRGBLst, 
           location: coords, //[x, y]
 				  actionName: name //undo, redo, erase, color
         }
@@ -237,8 +282,7 @@
 </head>
 <body>	
 
-	<canvas id="myCanvas" resize="true"></canvas>
+	<canvas id="myCanvas" resize="true" data-paper-resize="true"></canvas>
  
-	<div id="color-palette"></div>
 </body>
 </html>
