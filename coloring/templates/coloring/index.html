@@ -61,7 +61,7 @@
 				var tool = new paper.Tool();
         var rec = new paper.Rectangle(new paper.Point(225,275), new paper.Point(500,400));
         var path = new paper.Path.Rectangle(rec);
-        path.fillColor = 'red';
+        path.fillColor = "red";
         var down;
 				tool.onMouseDown = function (event) {
              down = event.point;
@@ -84,7 +84,15 @@
 			// your custom interaction goes here!
 			// you may replace everything
 			function myCustomInteraction() {
+        var width = paper.view.size.width;
+        var height = paper.view.size.height;
 				var tool = new paper.Tool();
+        var rec = new paper.Rectangle(new paper.Point(width*.95, 0), new paper.Point(width,height));
+        var path = new paper.Path.Rectangle(rec);
+        path.fillColor = helperRGBtoHex([155,55,55],true);
+        
+        
+        
 
 				tool.onMouseDown = function (event) {
 				    var hit = mandala.item.hitTest(event.point, { tolerance: 10, fill: true });
@@ -92,7 +100,71 @@
 				        hit.item.fillColor = cp.history[cp.history.length - 1];
 				    }
 				}
+
 			}
+      
+      function helperRGBtoHex(lst, direction) {
+        // toString-Parseint 16 referenced https://stackoverflow.com/questions/57803/how-to-convert-decimal-to-hexadecimal-in-javascript
+        if (direction) { //RGB to Hex
+          var r = lst[0].toString(16);
+          var g = lst[1].toString(16);
+          var b = lst[2].toString(16);
+          return "#" + r + g + b;
+        } else { //Reverse (Hex to RGB)
+          var hex = lst.substring(1); //ditch the #
+          var r = hex.substring(0,2).parseInt(hex, 16); //first 2 hex
+          var g = hex.substring(2,4).parseInt(hex, 16);
+          var b = hex.substring(4,6).parseInt(hex, 16);
+          return [r, g, b];
+        }
+      }
+      
+      function helperHSVtoHex(h,s,v,direction) {
+           helperRGBtoHex(hsvToRgb(h, s, v),direction);
+      }
+      
+      function hsvToRgb(h, s, v) {
+         //reference at https://bgrins.github.io/TinyColor/docs/tinycolor.html
+          h = bound01(h, 360) * 6;
+          s = bound01(s, 100);
+          v = bound01(v, 100);
+           var i = Math.floor(h),
+          f = h - i,
+          p = v * (1 - s),
+          q = v * (1 - f * s),
+          t = v * (1 - (1 - f) * s),
+          mod = i % 6,
+          r = [v, q, p, p, t, v][mod],
+          g = [t, v, v, q, p, p][mod],
+          b = [p, p, t, v, v, q][mod];
+          return [r * 255,g * 255,b * 255 ];     
+}  
+      function helperColorAtPixel(x,y) {
+        //reference at https://stackoverflow.com/questions/17221802/canvas-eyedropper
+         var pxData = ctx.getImageData(x,y,1,1);
+         return [ pxData.data[0], pxData.data[1], pxData.data[2] ];
+      }
+      
+      function helperStoreAction(prevHex, currHex, coords, name) {
+        var currAction = {
+				  prevColor: prevHex, 
+          currColor: currHex, 
+          location: coords, //[x, y]
+				  actionName: name //undo, redo, erase, color
+        }
+        _UNDO_STACK += currAction
+      }
+      
+      function helperHandlerRedo() { //find last undo and redo it as redo action
+        
+      }
+      
+      function helperHandlerUndo() {
+        
+      }
+      
+      
+      
 
 
 			// create a color palette with the given colors
@@ -155,6 +227,7 @@
 <body>	
 
 	<canvas id="myCanvas" width="750px" height="750px"></canvas>
+ 
 	<div id="color-palette"></div>
 </body>
 </html>
