@@ -15,12 +15,17 @@
       margin: 0;
       overflow: hidden;
       height: 100%;
+      
     }
 
     /* Scale canvas with resize attribute to full size */
     canvas[resize] {
       width: 100%;
       height: 100%;
+      position: absolute;
+      margin: auto;
+      left: 2%;
+	    top: 3%; 
     }
     
 		#color-palette {
@@ -51,7 +56,7 @@
 	<script type="text/javascript" resize="true">
 		window.onload = function() {
 			var canvas = document.getElementById('myCanvas');
-
+      
 			// coloring page
 			var mandala = {
 				item: null,
@@ -114,32 +119,77 @@
 	      };
 	       huesLst.push(color);
        }
-        
+        //Color gradient rectangle
         var width = paper.view.size.width;
         var height = paper.view.size.height;
 				var tool = new paper.Tool();
-        var rec = new paper.Rectangle(new paper.Point(width*.75, 0), new paper.Point(width,height));
-        var path = new paper.Path.Rectangle(rec);
+        var rec = new paper.Rectangle(new paper.Point(width*.75, 0), new paper.Point(width*1.5,height));
+        var path = new paper.Path.Rectangle(rec,width*0.1);
+        
         path.fillColor = {
           gradient: {//['red', 'orange', 'yellow', 'lime', 'blue', 'purple']
           stops: huesLst
         },
           origin: path.bounds.topCenter,
           destination: path.bounds.bottomCenter
-        };      
+        };
+        //Saturation rectangle
+        var width_2 = paper.view.size.width;
+        var height_2 = paper.view.size.height;
+        var rec = new paper.Rectangle(new paper.Point(width*.87, 0), new paper.Point(width*1.5,height));
+        var path = new paper.Path.Rectangle(rec,width*0.1);
+        path.fillColor = "white"; 
         
-
+        //Saturation Circles
+        var cir_1 = new paper.Path.Circle(new paper.Point(width*.95,height*.9),height*0.05);
+        cir_1.fillColor = '#0000ff';
+        var cir_2 = new paper.Path.Circle(new paper.Point(width*.95,height*.77),height*0.05);
+        cir_2.fillColor = '#0000e5';
+        var cir_3 = new paper.Path.Circle(new paper.Point(width*.95,height*.64),height*0.05);
+        cir_3.fillColor = '#0000b2';
+        var cir_4 = new paper.Path.Circle(new paper.Point(width*.95,height*.36),height*0.05);
+        cir_4.fillColor = '#00007f';
+        var cir_5 = new paper.Path.Circle(new paper.Point(width*.95,height*.23),height*0.05);
+        cir_5.fillColor = '#00004c';
+        var cir_6 = new paper.Path.Circle(new paper.Point(width*.95,height*.1),height*0.05);
+        cir_6.fillColor = '#000000';
+        
+        
+        //Brightness slide bar
+        //reference at http://vda-lab.github.io/2014/01/animation-and-slider-in-paperjs
+        var bar = new paper.Path();
+        bar.add(new paper.Point(width*0.75,height*0.5));
+        bar.add(new paper.Point(width,height*0.5));
+        bar.strokeColor = 'lightgrey';
+        bar.strokeWidth = width*0.1;
+        
+        //Brightness circle on bar
+        var marker = new paper.Path.Circle({
+             x:width*0.95,
+             y:height*0.5,
+           radius: width*0.05,
+         fillColor: "blue"})
+        
+        //Drag function to move the brightness circle
+        tool.onMouseDrag = function (event) {
+            var hitResult = bar.hitTest(event.point, {stroke: true, tolerance: 0});
+            if (hitResult) {
+                marker.position.x = event.point.x;
+            }
+        }
+        
 				tool.onMouseDown = function (event) {
+            var x = event.clientX;
+            var y = event.clientY;
+           
 				    var hit = mandala.item.hitTest(event.point, { tolerance: 10, fill: true });
 				    if (hit) {
 				        hit.item.fillColor = cp.history[cp.history.length - 1];
 				    }
 				}
-
 			}
-      
-      // Returns a brightness gradient of a certain hue given hueVal with constant saturation 1.
-      function helperBrightnessGradientGenerator(hueVal) {
+      // Returns a brightness list of a certain hue given hueVal with constant saturation 1.
+      function helperBrightnessColorsGenerator(hueVal) {
           var brightnessGradientLst = [];
           for (var i = 0, l = 5; i < l; i++) {
             var brightness = 1 - (i / l) * 1.5;
@@ -153,8 +203,21 @@
         return brightnessGradientLst;
       }
       
-      // Same as above except a saturation gradient with constant brightness .87.
-      function helperSaturationGradientGenerator(hueVal) {
+      
+      //Reference Comments:
+      
+      // See examples from https://www.webcomponents.org/element/@polymer/paper-slider
+      // http://paperjs.org/tutorials/interaction/working-with-mouse-vectors/ drawing & vectors
+      // https://www.smashingmagazine.com/2011/11/create-web-animations-with-paperjs/ creation of arbitrary curves as paths http://paperjs.org/examples/chain/
+      // https://code.tutsplus.com/tutorials/getting-started-with-paperjs-user-interaction--cms-26509
+      // https://code.tutsplus.com/tutorials/getting-started-with-paperjs-animation-and-images--cms-26530
+      // consider curve background as scaled/transformed circle object
+      // http://vda-lab.github.io/2014/01/animation-and-slider-in-paperjs 
+      // https://stackoverflow.com/questions/2142535/how-to-clear-the-canvas-for-redrawing?rq=1 clear canvas
+      
+      // Same as above except a list of saturation colors with constant brightness .87.
+      // Saturation should not use a gradient for these colors see http://paperjs.org/examples/nyan-rainbow/
+      function helperSaturationColorsGenerator(hueVal) {
           var saturationGradientLst = [];
           for (var i = 0, l = 5; i < l; i++) {
             var sat = 1 - (i / l) * 1.5;
@@ -210,10 +273,12 @@
       
       //Returns the color of the pixel at coords X, Y in [r, g, b] format
       function helperColorAtPixel(x,y) {
-        //reference at https://stackoverflow.com/questions/17221802/canvas-eyedropper
-         var pxData = ctx.getImageData(x,y,1,1);
-         return [ pxData.data[0], pxData.data[1], pxData.data[2] ];
+        
+        
+        
+        
       }
+      
       
       //Takes in two RGB lists [r, g, b] of the prev and next color for a location
       // at coords triggered by action of name and appends it to the end of stack _UNDO_STACK
