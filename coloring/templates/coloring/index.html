@@ -24,25 +24,14 @@
       height: 100%;
       position: absolute;
       margin: auto;
-      left: 2%;
-	    top: 3%; 
     }
-    
-		#color-palette {
-			width: 300px;
-			background-color: #f1f1f1;
-			display: flex;
-			flex-wrap: wrap;
-			position: absolute;
-			top: 0;
-		}
 
 		.swatch {
 			width: 24px;
 			height: 24px;
 			-moz-border-radius: 12px;
 			-webkit-border-radius: 12px;
-			border-radius: 12px;
+			border-radius: 12px; 
 			margin: 3px;
 		}
 		#myCanvas {
@@ -67,51 +56,17 @@
 			// color palette
 			var cp = {
 				history: ["#000000"], // black selected by default
-				options: [],
-				$container: $('#color-palette')
-			}
-
-			// your rectangle gradient interaction goes in this function
-			// you may also add code outside of the function (e.g., global variables)
-			function myGradientInteraction(){
-				var tool = new paper.Tool();
-        var rec = new paper.Rectangle(new paper.Point(225,275), new paper.Point(500,400));
-        var path = new paper.Path.Rectangle(rec);
-        path.fillColor = {
-        gradient: {
-            stops: ['red', 'green', 'blue']
-        },
-        origin: topLeft,
-        destination: bottomRight
-        }
-        var down;
-				tool.onMouseDown = function (event) {
-             down = event.point;
-				}
-
-				tool.onMouseUp = function (event) {
-            var up = event.point;
-					  var color1 = cp.history[cp.history.length-2];
-            var color2 = cp.history[cp.history.length-1];
-            path.fillColor = {
-              gradient: {
-                stops: [color1,color2]
-              },
-              origin: down,
-              destination: up
-            };
-				}
+				options: []
 			}
 
 			// your custom interaction goes here!
 			// you may replace everything
 			function myCustomInteraction() {
         // http://paperjs.org/examples/radial-rainbows/ for rainbow gradiantion and color structure
-        //https://groups.google.com/forum/#!topic/paperjs/yzP7TbH-oCs <- read me?
         var huesLst = [];
-        for (var i = 0, l = 7; i < l; i++) {
+        for (var i = 0, l = 360; i <= l; i++) {
           var brightness = .87;
-	        var hue = (i / l) * 256;
+	        var hue = (i / l) * 360;
 	        var color = {
 		      hue: hue,
 		      saturation: 1,
@@ -119,74 +74,89 @@
 	      };
 	       huesLst.push(color);
        }
-        //Color gradient rectangle
-        var width = paper.view.size.width;
-        var height = paper.view.size.height;
-				var tool = new paper.Tool();
-        var rec = new paper.Rectangle(new paper.Point(width*.75, 0), new paper.Point(width*1.5,height));
-        var path = new paper.Path.Rectangle(rec,width*0.1);
         
-        path.fillColor = {
+        //Color gradient rectangle
+        var gradWidth = paper.view.size.width;
+        var gradHeight = paper.view.size.height;
+				var gradTool = new paper.Tool();
+        var gradRec = new paper.Rectangle(new paper.Point(gradWidth*.85, 0), new paper.Point(gradWidth*1.5, gradHeight));
+        var gradPath = new paper.Path.Rectangle(gradRec,gradWidth*0.2);
+        
+        gradPath.fillColor = {
           gradient: {//['red', 'orange', 'yellow', 'lime', 'blue', 'purple']
           stops: huesLst
         },
-          origin: path.bounds.topCenter,
-          destination: path.bounds.bottomCenter
+          origin: gradPath.bounds.topCenter,
+          destination: gradPath.bounds.bottomCenter
         };
+        
+				gradTool.onMouseDown = function (event) {
+				    var hit = mandala.item.hitTest(event.point, { tolerance: 10, fill: true });
+				    if (hit) {
+              console.log(event.point, hit.item.fillColor);
+				        hit.item.fillColor = cp.history[cp.history.length - 1];
+				    } else {
+              var hit = gradPath.hitTest(event.point, { tolerance: 10, fill: true });
+              console.log(event.point, hit.item.fillColor);
+				      if (hit) {
+                var y = event.point.y;
+                //var colorVal = myCanvas.getContext('2d').getImageData(1111, event.point.y, 1, 1).data;
+                //console.log(y, hit);
+                //var hexVal = helperRGBtoHex(hit.color, true);
+				        //cp.history += hexVal;
+				      }
+            }
+				}
+ 
         //Saturation rectangle
-        var width_2 = paper.view.size.width;
-        var height_2 = paper.view.size.height;
-        var rec = new paper.Rectangle(new paper.Point(width*.87, 0), new paper.Point(width*1.5,height));
-        var path = new paper.Path.Rectangle(rec,width*0.1);
-        path.fillColor = "white"; 
+        var satWidth = paper.view.size.width;
+        var satHeight = paper.view.size.height;
+        var satRec = new paper.Rectangle(new paper.Point(satWidth*.90, 0), new paper.Point(satWidth*1.5,satHeight));
+        var satBox = new paper.Path.Rectangle(satRec, satWidth*0.2);
+        satBox.fillColor = "white"; 
         
         //Saturation Circles
-        var cir_1 = new paper.Path.Circle(new paper.Point(width*.95,height*.9),height*0.05);
+        var circWidth = paper.view.size.width;
+        var circHeight = paper.view.size.height;
+        var cir_1 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.9),circHeight*0.05);
         cir_1.fillColor = '#0000ff';
-        var cir_2 = new paper.Path.Circle(new paper.Point(width*.95,height*.77),height*0.05);
+        var cir_2 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.77),circHeight*0.05);
         cir_2.fillColor = '#0000e5';
-        var cir_3 = new paper.Path.Circle(new paper.Point(width*.95,height*.64),height*0.05);
+        var cir_3 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.64),circHeight*0.05);
         cir_3.fillColor = '#0000b2';
-        var cir_4 = new paper.Path.Circle(new paper.Point(width*.95,height*.36),height*0.05);
+        var cir_4 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.36),circHeight*0.05);
         cir_4.fillColor = '#00007f';
-        var cir_5 = new paper.Path.Circle(new paper.Point(width*.95,height*.23),height*0.05);
+        var cir_5 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.23),circHeight*0.05);
         cir_5.fillColor = '#00004c';
-        var cir_6 = new paper.Path.Circle(new paper.Point(width*.95,height*.1),height*0.05);
+        var cir_6 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.1),circHeight*0.05);
         cir_6.fillColor = '#000000';
         
         
         //Brightness slide bar
         //reference at http://vda-lab.github.io/2014/01/animation-and-slider-in-paperjs
-        var bar = new paper.Path();
-        bar.add(new paper.Point(width*0.75,height*0.5));
-        bar.add(new paper.Point(width,height*0.5));
-        bar.strokeColor = 'lightgrey';
-        bar.strokeWidth = width*0.1;
+        var brightBar = new paper.Path();
+        brightBar.add(new paper.Point(circWidth*0.75,circHeight*0.5));
+        brightBar.add(new paper.Point(circWidth,circHeight*0.5));
+        brightBar.strokeColor = 'lightgrey';
+        brightBar.strokeWidth = circWidth*0.1;
         
         //Brightness circle on bar
         var marker = new paper.Path.Circle({
-             x:width*0.95,
-             y:height*0.5,
-           radius: width*0.05,
+             x:circWidth*0.9,
+             y:circHeight*0.5,
+           radius: circWidth*0.05,
          fillColor: "blue"})
         
         //Drag function to move the brightness circle
-        tool.onMouseDrag = function (event) {
-            var hitResult = bar.hitTest(event.point, {stroke: true, tolerance: 0});
+        var brightTool = new paper.Tool();
+        gradTool.onMouseDrag = function (event) {
+            var hitResult = brightBar.hitTest(event.point, {stroke: true, tolerance: 0});
             if (hitResult) {
                 marker.position.x = event.point.x;
             }
         }
         
-				tool.onMouseDown = function (event) {
-            var x = event.clientX;
-            var y = event.clientY;
-           
-				    var hit = mandala.item.hitTest(event.point, { tolerance: 10, fill: true });
-				    if (hit) {
-				        hit.item.fillColor = cp.history[cp.history.length - 1];
-				    }
-				}
+        
 			}
       // Returns a brightness list of a certain hue given hueVal with constant saturation 1.
       function helperBrightnessColorsGenerator(hueVal) {
@@ -300,50 +270,18 @@
         
       }
       
-      
-      
-
-
-			// create a color palette with the given colors
-			function createColorPalette(colors){
-              
-				// create a swatch for each color
-				for (var i = colors.length - 1; i >= 0; i--) {
-					var $swatch = $("<div>").css("background-color", colors[i])
-									   .addClass("swatch");
-					$swatch.click(function(){
-						// add color to the color palette history
-					  	cp.history.push($(this).css("background-color"));
-					});
-					cp.$container.append($swatch);
-				}
-			}
-
-			// loads a set of colors from a json to create a color palette
-			function getColorsCreatePalette(){
-				cp.$container.html(" ");
-				$.getJSON('/static/coloring/vendors/material/material-colors.json', function(colors){
-					var keys = Object.keys(colors);
-					for (var i = keys.length - 1; i >= 0; i--) {
-						cp.options.push(colors[keys[i]][500]);
-					}
-					createColorPalette(cp.options);
-				});
-			}
 
 			function init(custom){
 				paper.setup(canvas);
-				getColorsCreatePalette();
 
 				paper.project.importSVG(mandala.filePath, function(item) { 
 					mandala.item = item._children["design-freepik"];
 				    paper.project.insertLayer(0,mandala.item);
 
 				    if (custom) {
+              var raster = new paper.Raster('colorgradient');
 				    	myCustomInteraction();	
-				    } else {
-				    	myGradientInteraction();
-				    }		
+				    }
 					
 				}); 
 			}
@@ -364,6 +302,7 @@
 <body>	
 
 	<canvas id="myCanvas" resize="true" data-paper-resize="true"></canvas>
+  <img id="colorgradient" class="visuallyhidden" src="color gradient.jpg" width="320" height="491">
  
 </body>
 </html>
