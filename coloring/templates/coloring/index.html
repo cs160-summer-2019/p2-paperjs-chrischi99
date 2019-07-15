@@ -62,11 +62,13 @@
 			// your custom interaction goes here!
 			// you may replace everything
 			function myCustomInteraction() {
+        var raster = new paper.Raster('/static/coloring/images/colorgradient.jpg');
+        
         // http://paperjs.org/examples/radial-rainbows/ for rainbow gradiantion and color structure
         var huesLst = [];
-        for (var i = 0, l = 360; i <= l; i++) {
+        for (var i = 0, l = 299; i <= l; i++) {
           var brightness = .87;
-	        var hue = (i / l) * 360;
+	        var hue = (i / l) * 256;
 	        var color = {
 		      hue: hue,
 		      saturation: 1,
@@ -91,15 +93,22 @@
         };
         
 				gradTool.onMouseDown = function (event) {
+            var y = event.point.y;
 				    var hit = mandala.item.hitTest(event.point, { tolerance: 10, fill: true });
 				    if (hit) {
-              console.log(event.point, hit.item.fillColor);
+              //console.log(event.point, hit.item.fillColor);
 				        hit.item.fillColor = cp.history[cp.history.length - 1];
 				    } else {
               var hit = gradPath.hitTest(event.point, { tolerance: 10, fill: true });
-              console.log(event.point, hit.item.fillColor);
+              //var hit = raster.hitTest(event.point, { tolerance: 10, fill: true });
+              //var lst = hit.color._components;
+              //console.log(lst);
 				      if (hit) {
-                var y = event.point.y;
+                var yRatio = ((y/gradHeight)*100);
+                var hsvColor = huesLst[(Math.round(yRatio) *3)];
+                var hexColor = helperRGBtoHex(HSVtoRGB(hsvColor.hue, hsvColor.saturation, hsvColor.brightness), true);
+                console.log(hexColor);
+                marker.fillColor = hexColor;
                 //var colorVal = myCanvas.getContext('2d').getImageData(1111, event.point.y, 1, 1).data;
                 //console.log(y, hit);
                 //var hexVal = helperRGBtoHex(hit.color, true);
@@ -223,23 +232,33 @@
            helperRGBtoHex(hsvToRgb(h, s, v),direction);
       }
       
+      function hsvLstToRgb(lst) {
+        return hsvToRgb(lst[0], lst[1], lst[2]);
+      }
+      
       //Converts HSV values [0,1] to RGB in [r,g,b] list format
-      function hsvToRgb(h, s, v) {
-         //reference at https://bgrins.github.io/TinyColor/docs/tinycolor.html
-          h = bound01(h, 360) * 6;
-          s = bound01(s, 100);
-          v = bound01(v, 100);
-           var i = Math.floor(h),
-          f = h - i,
-          p = v * (1 - s),
-          q = v * (1 - f * s),
-          t = v * (1 - (1 - f) * s),
-          mod = i % 6,
-          r = [v, q, p, p, t, v][mod],
-          g = [t, v, v, q, p, p][mod],
-          b = [p, p, t, v, v, q][mod];
-          return [r * 255,g * 255,b * 255 ];
-      }  
+     function HSVtoRGB(h, s, v) {
+       //reference at https://stackoverflow.com/questions/17242144/javascript-convert-hsb-hsv-color-to-rgb-accurately
+          var r, g, b, i, f, p, q, t;
+          if (arguments.length === 1) {
+              s = h.s, v = h.v, h = h.h;
+          }
+          i = Math.floor(h * 6);
+          f = h * 6 - i;
+          p = v * (1 - s);
+          q = v * (1 - f * s);
+          t = v * (1 - (1 - f) * s);
+          switch (i % 6) {
+              case 0: r = v, g = t, b = p; break;
+              case 1: r = q, g = v, b = p; break;
+              case 2: r = p, g = v, b = t; break;
+              case 3: r = p, g = q, b = v; break;
+              case 4: r = t, g = p, b = v; break;
+              case 5: r = v, g = p, b = q; break;
+          }
+          return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+      }
+
       
       //Returns the color of the pixel at coords X, Y in [r, g, b] format
       function helperColorAtPixel(x,y) {
@@ -279,7 +298,6 @@
 				    paper.project.insertLayer(0,mandala.item);
 
 				    if (custom) {
-              var raster = new paper.Raster('colorgradient');
 				    	myCustomInteraction();	
 				    }
 					
@@ -302,7 +320,6 @@
 <body>	
 
 	<canvas id="myCanvas" resize="true" data-paper-resize="true"></canvas>
-  <img id="colorgradient" class="visuallyhidden" src="color gradient.jpg" width="320" height="491">
  
 </body>
 </html>
