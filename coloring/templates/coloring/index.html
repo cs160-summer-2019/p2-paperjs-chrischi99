@@ -71,6 +71,7 @@
 			}
       
       var _UNDO_STACK = [];
+      var _ERASE_ACTIVE = false; 
 
 			// your custom interaction goes here!
 			// you may replace everything
@@ -110,11 +111,19 @@
             var y = event.point.y;
 				    var hit = mandala.item.hitTest(event.point, { tolerance: 5, fill: true });
 				    if (hit) {
-                var prevColor = hit.item.fillColor;
-                var currColor = selectedColor;
-                var coords = [event.point.x, event.point.y];
-				        hit.item.fillColor = selectedColor;//cp.history[cp.history.length - 1];
-                helperStoreAction(prevColor, currColor, coords, "color");
+                if (_ERASE_ACTIVE) { //erase
+                  var prevColor = hit.item.fillColor;
+                  var currColor = "#ffffff";
+                  var coords = [event.point.x, event.point.y];
+				          hit.item.fillColor = currColor;//cp.history[cp.history.length - 1];
+                  helperStoreAction(prevColor, currColor, coords, "erase");
+                } else { //color
+                  var prevColor = hit.item.fillColor;
+                  var currColor = selectedColor;
+                  var coords = [event.point.x, event.point.y];
+				          hit.item.fillColor = currColor;//cp.history[cp.history.length - 1];
+                  helperStoreAction(prevColor, currColor, coords, "color");
+                }
 				    } else {
               var hit = gradPath.hitTest(event.point, {tolerance: 10, fill: true });
               //var hit = raster.hitTest(event.point, { tolerance: 10, fill: true });
@@ -369,6 +378,7 @@
           helperStoreAction(undoAction.curr, undoAction.prev, undoAction.location, "undo");
         }
       }
+     
       
 
 			function init(custom){
