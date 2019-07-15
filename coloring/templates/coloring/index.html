@@ -62,13 +62,13 @@
 			// your custom interaction goes here!
 			// you may replace everything
 			function myCustomInteraction() {
-        var raster = new paper.Raster('/static/coloring/images/colorgradient.jpg');
-        
+        //var raster = new paper.Raster('/static/coloring/images/colorgradient.jpg');
         // http://paperjs.org/examples/radial-rainbows/ for rainbow gradiantion and color structure
-        var huesLst = [];
+        var huesLst = []; //299
+        var testColor = '';
         for (var i = 0, l = 299; i <= l; i++) {
           var brightness = .87;
-	        var hue = (i / l) * 256;
+	        var hue = (i / l) * 299;
 	        var color = {
 		      hue: hue,
 		      saturation: 1,
@@ -94,21 +94,22 @@
         
 				gradTool.onMouseDown = function (event) {
             var y = event.point.y;
-				    var hit = mandala.item.hitTest(event.point, { tolerance: 10, fill: true });
+				    var hit = mandala.item.hitTest(event.point, { tolerance: 5, fill: true });
 				    if (hit) {
               //console.log(event.point, hit.item.fillColor);
-				        hit.item.fillColor = cp.history[cp.history.length - 1];
+				        hit.item.fillColor = testColor;//cp.history[cp.history.length - 1];
 				    } else {
-              var hit = gradPath.hitTest(event.point, { tolerance: 10, fill: true });
+              var hit = gradPath.hitTest(event.point, {tolerance: 10, fill: true });
               //var hit = raster.hitTest(event.point, { tolerance: 10, fill: true });
               //var lst = hit.color._components;
-              //console.log(lst);
 				      if (hit) {
-                var yRatio = ((y/gradHeight)*100);
-                var hsvColor = huesLst[(Math.round(yRatio) *3)];
-                var hexColor = helperRGBtoHex(HSVtoRGB(hsvColor.hue, hsvColor.saturation, hsvColor.brightness), true);
-                console.log(hexColor);
-                marker.fillColor = hexColor;
+                var yRatio = (event.point.y/paper.view.size.height)*huesLst.length;
+                var hsvColorA = huesLst[Math.round(yRatio)];
+                console.log(hsvColorA, huesLst.length, yRatio);
+                var colorObj = new paper.Color(hsvColorA);
+                //var hexColor = helperRGBtoHex(HSVtoRGB(hsvColorA.hue, 1, .87), true);
+                testColor = colorObj;
+                console.log(colorObj);
                 //var colorVal = myCanvas.getContext('2d').getImageData(1111, event.point.y, 1, 1).data;
                 //console.log(y, hit);
                 //var hexVal = helperRGBtoHex(hit.color, true);
