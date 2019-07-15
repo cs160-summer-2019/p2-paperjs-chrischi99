@@ -40,6 +40,9 @@
       margin: 0;
 		  display: block;
 		}
+    
+
+
 	</style>
 
 	<script type="text/javascript" resize="true">
@@ -52,12 +55,22 @@
 				lastClicked: null,
 				filePath: '/static/coloring/images/mandala-freepik.svg'
 			};	
+      
+      // Metal gradient CSS from http://simurai.com/lab/2011/08/21/brushed-metal 
+      // converted to svg with http://www.kmhcreative.com/downloads/CSS2SVG.htm
+// 			var brushed = {
+// 				item: null,
+// 				lastClicked: null,
+// 				filePath: '/static/coloring/images/brushed.svg'
+// 			};	
 
 			// color palette
 			var cp = {
 				history: ["#000000"], // black selected by default
 				options: []
 			}
+      
+      var _UNDO_STACK = [];
 
 			// your custom interaction goes here!
 			// you may replace everything
@@ -65,7 +78,6 @@
         //var raster = new paper.Raster('/static/coloring/images/colorgradient.jpg');
         // http://paperjs.org/examples/radial-rainbows/ for rainbow gradiantion and color structure
         var huesLst = []; //299
-        var testColor = '';
         for (var i = 0, l = 299; i <= l; i++) {
           var brightness = .87;
 	        var hue = (i / l) * 299;
@@ -76,14 +88,16 @@
 	      };
 	       huesLst.push(color);
        }
-        
+        var selectedColor = huesLst[132];
         //Color gradient rectangle
         var gradWidth = paper.view.size.width;
         var gradHeight = paper.view.size.height;
 				var gradTool = new paper.Tool();
         var gradRec = new paper.Rectangle(new paper.Point(gradWidth*.85, 0), new paper.Point(gradWidth*1.5, gradHeight));
         var gradPath = new paper.Path.Rectangle(gradRec,gradWidth*0.2);
-        
+        gradPath.strokeColor =  "#4c4c4c";
+        gradPath.strokeWidth = "5";
+          
         gradPath.fillColor = {
           gradient: {//['red', 'orange', 'yellow', 'lime', 'blue', 'purple']
           stops: huesLst
@@ -96,8 +110,11 @@
             var y = event.point.y;
 				    var hit = mandala.item.hitTest(event.point, { tolerance: 5, fill: true });
 				    if (hit) {
-              //console.log(event.point, hit.item.fillColor);
-				        hit.item.fillColor = testColor;//cp.history[cp.history.length - 1];
+                var prevColor = hit.item.fillColor;
+                var currColor = selectedColor;
+                var coords = [event.point.x, event.point.y];
+				        hit.item.fillColor = selectedColor;//cp.history[cp.history.length - 1];
+                helperStoreAction(prevColor, currColor, coords, "color");
 				    } else {
               var hit = gradPath.hitTest(event.point, {tolerance: 10, fill: true });
               //var hit = raster.hitTest(event.point, { tolerance: 10, fill: true });
@@ -108,7 +125,7 @@
                 console.log(hsvColorA, huesLst.length, yRatio);
                 var colorObj = new paper.Color(hsvColorA);
                 //var hexColor = helperRGBtoHex(HSVtoRGB(hsvColorA.hue, 1, .87), true);
-                testColor = colorObj;
+                selectedColor = colorObj;
                 console.log(colorObj);
                 //var colorVal = myCanvas.getContext('2d').getImageData(1111, event.point.y, 1, 1).data;
                 //console.log(y, hit);
@@ -123,39 +140,88 @@
         var satHeight = paper.view.size.height;
         var satRec = new paper.Rectangle(new paper.Point(satWidth*.90, 0), new paper.Point(satWidth*1.5,satHeight));
         var satBox = new paper.Path.Rectangle(satRec, satWidth*0.2);
-        satBox.fillColor = "white"; 
+        satBox.fillColor = "#b0b3b7"; 
+        satBox.strokeColor =  "#4c4c4c";
+        satBox.strokeWidth = "5";
         
         //Saturation Circles
+        var satCircLst = []; //6
+        var VAL_CONSTS = [1.0, .833, .667, .5, .333, .167];
+        for (var i = 0, l = 5; i <= l; i++) {
+	        var color = {
+		      hue: selectedColor.hue,
+		      saturation: VAL_CONSTS[i],
+		      brightness: selectedColor.brightness
+	      };
+	       satCircLst.push(color);
+       }
+        
         var circWidth = paper.view.size.width;
         var circHeight = paper.view.size.height;
-        var cir_1 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.9),circHeight*0.05);
-        cir_1.fillColor = '#0000ff';
-        var cir_2 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.77),circHeight*0.05);
-        cir_2.fillColor = '#0000e5';
-        var cir_3 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.64),circHeight*0.05);
-        cir_3.fillColor = '#0000b2';
-        var cir_4 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.36),circHeight*0.05);
-        cir_4.fillColor = '#00007f';
-        var cir_5 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.23),circHeight*0.05);
-        cir_5.fillColor = '#00004c';
-        var cir_6 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.1),circHeight*0.05);
-        cir_6.fillColor = '#000000';
+        var cir_1 = new paper.Path.Circle(new paper.Point(circWidth*.975,circHeight*.87),circHeight*0.04);
+        cir_1.fillColor = satCircLst[0];
+        cir_1.strokeColor =  "#4c4c4c";
+        cir_1.strokeWidth = "5";
+        var cir_2 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.75),circHeight*0.04);
+        cir_2.fillColor = satCircLst[1];
+        cir_2.strokeColor =  "#4c4c4c";
+        cir_2.strokeWidth = "5";
+        var cir_3 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.63),circHeight*0.04);
+        cir_3.fillColor = satCircLst[2];
+        cir_3.strokeColor =  "#4c4c4c";
+        cir_3.strokeWidth = "5";
+        var cir_4 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.37),circHeight*0.04);
+        cir_4.fillColor = satCircLst[3];
+        cir_4.strokeColor =  "#4c4c4c";
+        cir_4.strokeWidth = "5";
+        var cir_5 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.25),circHeight*0.04);
+        cir_5.fillColor = satCircLst[4];
+        cir_5.strokeColor =  "#4c4c4c";
+        cir_5.strokeWidth = "5";
+        var cir_6 = new paper.Path.Circle(new paper.Point(circWidth*.975,circHeight*.13),circHeight*0.04);
+        cir_6.fillColor = satCircLst[5];
+        cir_6.strokeColor =  "#4c4c4c";
+        cir_6.strokeWidth = "5";
         
         
         //Brightness slide bar
         //reference at http://vda-lab.github.io/2014/01/animation-and-slider-in-paperjs
+        var valBarLst = [];
+        for (var i = 0, l = 5; i <= l; i++) {
+	        var color = {
+		      hue: selectedColor.hue,
+		      saturation: selectedColor.saturation,
+		      brightness: VAL_CONSTS[i]
+	      };
+	       valBarLst.push(color);
+       }
         var brightBar = new paper.Path();
         brightBar.add(new paper.Point(circWidth*0.75,circHeight*0.5));
         brightBar.add(new paper.Point(circWidth,circHeight*0.5));
         brightBar.strokeColor = 'lightgrey';
         brightBar.strokeWidth = circWidth*0.1;
         
+        brightBar.strokeColor = {
+          gradient: {//['red', 'orange', 'yellow', 'lime', 'blue', 'purple']
+          stops: valBarLst
+        },
+          origin: brightBar.bounds.bottomLeft,
+          destination: brightBar.bounds.bottomRight
+        };
+        
+        //Undo Redo Box
+        var U_RWidth = paper.view.size.width;
+        var U_RHeight = paper.view.size.height;
+        var U_RRec = new paper.Rectangle(new paper.Point(0, U_RHeight*0.2), new paper.Point(U_RWidth*0.32,U_RHeight*0.2));
+        var U_RBox = new paper.Path.Rectangle(U_RRec, U_RWidth*0.2);
+        U_RBox.fillColor = "blue"; 
+        
         //Brightness circle on bar
         var marker = new paper.Path.Circle({
              x:circWidth*0.9,
              y:circHeight*0.5,
            radius: circWidth*0.05,
-         fillColor: "blue"})
+         fillColor: selectedColor})
         
         //Drag function to move the brightness circle
         var brightTool = new paper.Tool();
@@ -165,6 +231,8 @@
                 marker.position.x = event.point.x;
             }
         }
+        
+        
         
         
 			}
@@ -270,24 +338,36 @@
       }
       
       
-      //Takes in two RGB lists [r, g, b] of the prev and next color for a location
+      //Takes in paperjs color object of the prev and next color for a location
       // at coords triggered by action of name and appends it to the end of stack _UNDO_STACK
-      function helperStoreAction(prevRGBLst, currRGBLst, coords, name) {
+      function helperStoreAction(prevColor, currColor, coords, name) {
         var currAction = {
-				  prevColor: prevRGBLst, 
-          currColor: currRGBLst, 
+				  prev: prevColor, 
+          curr: currColor, 
           location: coords, //[x, y]
-				  actionName: name //undo, redo, erase, color
+				  actionName: name //"color", "undo", "redo", "erase"
         }
-        _UNDO_STACK += currAction
+        _UNDO_STACK += currAction;
       }
       
       function helperHandlerRedo() { //find last undo and redo it as redo action
-        
+        if (_UNDO_STACK.length > 0) {
+          if (_UNDO_STACK[_UNDO_STACK.length-1].name == "undo") {
+            helperHandlerUndo();
+          }
+        }
       }
       
       function helperHandlerUndo() {
-        
+        if (_UNDO_STACK.length == 0) {
+          return;
+        }
+        var undoAction = _UNDO_STACK.pop();
+        var hit = mandala.item.hitTest(undoAction.location, { tolerance: 5, fill: true });
+        if (hit) {
+          hit.item.fillColor = undoAction.prev;
+          helperStoreAction(undoAction.curr, undoAction.prev, undoAction.location, "undo");
+        }
       }
       
 
@@ -299,6 +379,7 @@
 				    paper.project.insertLayer(0,mandala.item);
 
 				    if (custom) {
+           //   paper.project.importSVG(brushed.filePath);
 				    	myCustomInteraction();	
 				    }
 					
