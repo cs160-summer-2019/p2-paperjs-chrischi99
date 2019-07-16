@@ -290,6 +290,12 @@
                 }
                 marker.position.x = event.point.x;
                 var brightIndex = Math.round( ((event.point.x/(circWidth*0.22))*10) - 40); //fixme
+                if (brightIndex < 0) {
+                  brightIndex = 0;
+                }
+                if (brightIndex > 6) {
+                  brightIndex = 6;
+                }
                 selectedColor.brightness = valBarLst[brightIndex].brightness;
                 //selectedColor.brightness = valBarLst[brightIndex].brightness;
                 //marker.fillColor = selectedColor;
