@@ -22,7 +22,7 @@
     canvas[resize] {
       width: 100%;
       height: 100%;
-      position: absolute;
+      position: relative;
       margin: auto;
     }
 
@@ -179,9 +179,9 @@
         
         //Click tools for Undo and Redo buttons
     
-       var undoTool = new paper.Tool();   
-        undoTool.onMouseClick = function (event) {
-            var hitResult = R_Rec.hitTest(event.point, {stroke: true, fill: true, tolerance: 3});
+        var undoTool = new paper.Tool();   
+        undoTool.onMousedown = function (event) {
+            var hitResult = R_Path.hitTest(event.point, {stroke: true, fill: true, tolerance: 3});
             console.log(hitResult);
             if (hitResult) {
               if (event.point.x >= R_Width*0.7) {
@@ -199,11 +199,11 @@
         
         //Saturation Circles
         var satCircLst = []; //6
-        var VAL_CONSTS = [1.0, .833, .667, .5, .333, .167];
+        var SAT_CONSTS = [1.0, .833, .667, .5, .333, .167];
         for (var i = 0, l = 5; i <= l; i++) {
 	        var color = {
 		      hue: selectedColor.hue,
-		      saturation: VAL_CONSTS[i],
+		      saturation: SAT_CONSTS[i],
 		      brightness: selectedColor.brightness
 	      };
 	       satCircLst.push(color);
@@ -240,8 +240,9 @@
         
         //Brightness slide bar
         //reference at http://vda-lab.github.io/2014/01/animation-and-slider-in-paperjs
+        var VAL_CONSTS = [1.0, .833, .667, .5, .333, .167, .125];
         var valBarLst = [];
-        for (var i = 0, l = 5; i <= l; i++) {
+        for (var i = 0, l = 6; i <= l; i++) {
 	        var color = {
 		      hue: selectedColor.hue,
 		      saturation: selectedColor.saturation,
@@ -284,7 +285,15 @@
         gradTool.onMouseDrag = function (event) {
             var hitResult = brightBar.hitTest(event.point, {stroke: true, tolerance: 0});
             if (hitResult) {
+                if (event.point.x <= circWidth*0.88 || event.point.x >= circWidth) {
+                  return;
+                }
                 marker.position.x = event.point.x;
+                var brightIndex = Math.round( ((event.point.x/(circWidth*0.22))*10) - 40); //fixme
+                selectedColor.brightness = valBarLst[brightIndex].brightness;
+                //selectedColor.brightness = valBarLst[brightIndex].brightness;
+                //marker.fillColor = selectedColor;
+                paper.view.draw(); 
             }
         }
         
