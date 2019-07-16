@@ -13,17 +13,21 @@
     html,
     body {
       margin: 0;
-      overflow: hidden;
       height: 100%;
-      
+      overflow: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: none;
     }
 
     /* Scale canvas with resize attribute to full size */
     canvas[resize] {
-      width: 100%;
       height: 100%;
-      position: relative;
+      width: 100%;
       margin: auto;
+      position: relative;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
     }
 
 		.swatch {
@@ -33,16 +37,18 @@
 			-webkit-border-radius: 12px;
 			border-radius: 12px; 
 			margin: 3px;
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
 		}
 		#myCanvas {
 			padding-left: 0;
 		  padding-right: 0;
       margin: 0;
 		  display: block;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
 		}
-    
-
-
 	</style>
 
 	<script type="text/javascript" resize="true">
@@ -72,16 +78,76 @@
 			}
       
       var _UNDO_STACK = [];
+      var _REDO_STACK = [];
       var _ERASE_ACTIVE = false; 
       var selectedColor = "#000000";
       var selectedHueIndex = -1;
       var update_flag = false;
+      var redraw_flag = false;
       var huesLst = [];
       var gradPath = null;
+      var brightBar = null;
+      var cir_1 = null;
+      var cir_2 = null;
+      var cir_3 = null;
+      var cir_4 = null;
+      var cir_5 = null;
+      var cir_6 = null;
+      var hue_update_flag = false;
+      var R_Path = null;
+      
+      
+      
+      
+      
+    
+      
 
+      
+      //TODOs:
+      //chk why lightness isn't promptly updating
+      
 			// your custom interaction goes here!
 			// you may replace everything
 			function myCustomInteraction() {
+       //various gradient color choices from https://uigradients.com/
+      
+       var GRAD_SEL = { gradient: {stops: ['#605C3C', '#3C3B3F']}, 
+          origin: paper.view.bounds.leftCenter, destination: paper.view.bounds.center}; 
+      
+      var GRAD_BLK = { gradient: {stops: ['#859398', '#283048']}, 
+          origin: paper.view.bounds.leftCenter, destination: paper.view.bounds.center}; 
+      
+      var GRAD_TIN = { gradient: {stops: ['eef2f3', '#8e9eab']}, 
+          origin: paper.view.bounds.leftCenter, destination: paper.view.bounds.center}; 
+      
+      var GRAD_BLU = { gradient: {stops: ['#A5FECB', '#20BDFF', '#5433FF']}, 
+          origin: paper.view.bounds.leftCenter, destination: paper.view.bounds.center}; 
+        
+        
+        //Experimental Gradient-Fill Window
+        //Not completed and used in order to allow greater focus on intuitiveness of color selector slider.
+        function gradiationWindow() {
+          var triangle = new paper.Path.RegularPolygon(new paper.Point(1, 1), 3, 30);
+          triangle.fillColor = '#e9e9ff';
+          var gPickerWidth = paper.view.size.width;
+          var gPickerHeight = paper.view.size.height;
+				  var gPickerTool = new paper.Tool();
+          var gPickerRec = new paper.Rectangle(new paper.Point(1, 1), new paper.Point(75, 75));
+          var gPickerPath = new paper.Path.Rectangle(gPickerRec);
+          gPickerPath.strokeColor =  "#4c4c4c";
+          gPickerPath.strokeWidth = 3;
+          gPickerPath.translate(0.5,0.5);
+          //First, put pull tab near 0,0 (top left corner)
+          //Then, detect drag down (vector check) of pull tab
+          //Switch active tool to gPickertool
+          //Line Path with 2-3 points of circles which may be colored in in the usual way.
+          //Adjusting circles by dragging can change the source and destination of the gradient.
+          //Upon finishing, select apply or close without applying.
+          //Reverse to close without using
+        }
+        
+        mandala.item.fillColor = GRAD_BLU;
         
         for (var i = 0, l = 299; i <= l; i++) {
           var brightness = .87;
@@ -102,19 +168,40 @@
         var gradRec = new paper.Rectangle(new paper.Point(gradWidth*.85, 0), new paper.Point(gradWidth*1.5, gradHeight));
         gradPath = new paper.Path.Rectangle(gradRec,gradWidth*0.2);
         gradPath.strokeColor =  "#4c4c4c";
-        gradPath.strokeWidth = 3;
-        gradPath.translate(0.5,0.5);
-        
+        gradPath.strokeWidth = 2;
+        gradPath.translate(0.5,0.5); //https://www.rgraph.net/canvas/docs/howto-get-crisp-lines-with-no-antialias.html
         gradPath.fillColor = {
           gradient: {//['red', 'orange', 'yellow', 'lime', 'blue', 'purple']
           stops: huesLst
         },
           origin: gradPath.bounds.topCenter,
           destination: gradPath.bounds.bottomCenter
-        };
+        }
         
+         //Saturation rectangle
+        var satWidth = paper.view.size.width;
+        var satHeight = paper.view.size.height;
+        var satRec = new paper.Rectangle(new paper.Point(satWidth*.90, 0), new paper.Point(satWidth*1.5,satHeight));
+        var satBox = new paper.Path.Rectangle(satRec, satWidth*0.2);
+        satBox.fillColor = "#b0b3b7"; 
+        satBox.strokeColor =  "#4c4c4c";
+        satBox.strokeWidth = 3;
+        satBox.translate(0.5,0.5); //https://www.rgraph.net/canvas/docs/howto-get-crisp-lines-with-no-antialias.html
+        satBox.fillColor = GRAD_TIN;
+        
+
         //gradient mouse tool
 				gradTool.onMouseDown = function (event) {
+            var hitUndo = R_Path.hitTest(event.point, { tolerance: 3, fill: true });
+            if (hitUndo) {
+              if (undoTxt.hitTest(event.point, { tolerance: 10, fill: true })) {
+                helperHandlerUndo(); 
+              } else if (redoTxt.hitTest(event.point, { tolerance: 10, fill: true })) {
+                helperHandlerRedo(); 
+              }
+              return;
+            }
+          
             var y = event.point.y;
 				    var hit = mandala.item.hitTest(event.point, { tolerance: 5, fill: true });
 				    if (hit) {
@@ -133,73 +220,123 @@
                   helperStoreAction(prevColor, currColor, coords, "color");
                 }
 				    } else {
-              var hit = gradPath.hitTest(event.point, {tolerance: 10, fill: true });
+              var hit = gradPath.hitTest(event.point, {tolerance: 1, fill: true });
               //var hit = raster.hitTest(event.point, { tolerance: 10, fill: true });
               //var lst = hit.color._components;
+              var brightHit = brightBar.hitTest(event.point, {tolerance: 5, fill: true });
+              if (satBox.hitTest(event.point, {tolerance: 0, fill: true })) {
+                //detect lightbox
+                if (!brightHit) {
+                  var circHeight = paper.view.size.height;
+                  //circHeight*.87 75 63 37 25 13
+                  if ((circHeight*.845) <= event.point.y && (circHeight*.895) >= event.point.y) {
+                    selectedColor.saturation = cir_1.fillColor.saturation;
+                    update_flag = true;
+                  }
+                  else if ((circHeight*.725) <= event.point.y && (circHeight*.775) >= event.point.y) {
+                    selectedColor.saturation = cir_2.fillColor.saturation;
+                    update_flag = true;
+                  }
+                  else if ((circHeight*.605) <= event.point.y && (circHeight*.655) >= event.point.y) {
+                    selectedColor.saturation = cir_3.fillColor.saturation;
+                    update_flag = true;
+                  }
+                  else if ((circHeight*.345) <= event.point.y && (circHeight*.395) >= event.point.y) {
+                    selectedColor.saturation = cir_4.fillColor.saturation;
+                    update_flag = true;
+                  }
+                  else if ((circHeight*.235) <= event.point.y && (circHeight*.275) >= event.point.y) {
+                    selectedColor.saturation = cir_5.fillColor.saturation;
+                    update_flag = true;
+                  }
+                  else if ((circHeight*.105) <= event.point.y && (circHeight*.155) >= event.point.y) {
+                    selectedColor.saturation = cir_6.fillColor.saturation;
+                    update_flag = true;
+                  }
+                  return;
+                }
+                else {
+                  return;
+                }
+              }
 				      if (hit) {
+                var markerHit = marker.hitTest(event.point, { tolerance: 9, fill: true });
+                if (brightHit || markerHit) {
+                  return;
+                }
+                return;
                 var yRatio = Math.round((event.point.y/paper.view.size.height)*huesLst.length);
                 var hsvColorA = huesLst[yRatio];
-                //console.log(hsvColorA, huesLst.length, yRatio);
                 var colorObj = new paper.Color(hsvColorA);
-                //var hexColor = helperRGBtoHex(HSVtoRGB(hsvColorA.hue, 1, .87), true);
-                selectedColor = colorObj;
                 selectedHueIndex = yRatio;
                 update_flag = true;
-                //console.log(colorObj);
-                //var colorVal = myCanvas.getContext('2d').getImageData(1111, event.point.y, 1, 1).data;
-                //console.log(y, hit);
-                //var hexVal = helperRGBtoHex(hit.color, true);
-				        //cp.history += hexVal;
+                hue_update_flag = true;
 				      }
             }
 				}
+        //gradPath.sendToBack(); //flex
         
  
-        //Saturation rectangle
-        var satWidth = paper.view.size.width;
-        var satHeight = paper.view.size.height;
-        var satRec = new paper.Rectangle(new paper.Point(satWidth*.90, 0), new paper.Point(satWidth*1.5,satHeight));
-        var satBox = new paper.Path.Rectangle(satRec, satWidth*0.2);
-        satBox.fillColor = "#b0b3b7"; 
-        satBox.strokeColor =  "#4c4c4c";
-        satBox.strokeWidth = 4;
-        satBox.translate(0.5,0.5); //https://www.rgraph.net/canvas/docs/howto-get-crisp-lines-with-no-antialias.html
+       
         
-        //Undo Redo Box
+       // Undo Redo Box
         var R_Width = paper.view.size.width;
         var R_Height = paper.view.size.height;
-        var R_Rec = new paper.Rectangle(new paper.Point(-R_Width*0.1,R_Height+R_Height*0.1), new paper.Point(R_Width*0.15, R_Height*0.9));
-        var R_Path = new paper.Path.Rectangle(R_Rec,R_Width*0.1);
-        R_Path.fillColor = "grey";
-        var seperation_beginning = new paper.Point(R_Width*0.15/2, R_Height*0.905);
-        var separation_end = new paper.Point(R_Width*0.075, R_Height);
-        var separation_path = new paper.Path.Line(seperation_beginning, separation_end);
-        separation_path.strokeColor = 'black';
-      //  R_Path.insertAbove(gradPath);
+        var R_Rec = new paper.Rectangle(new paper.Point(-R_Width*0.1,R_Height+R_Height*0.1), new paper.Point(R_Width*0.132, R_Height*0.9));
+        R_Path = new paper.Path.Rectangle(R_Rec,R_Width*0.1);
+        R_Path.fillColor = "#b0b3b7";
+        R_Path.opacity = .42;
+        
+        //undobutton
+        var undoTxt = new paper.PointText(R_Width * .01, R_Height * .975);
+        undoTxt.insertAbove(R_Path);
+        undoTxt.content = "⤵️";
+        undoTxt.name = 'Redo';
+        
+        //redobutton
+        var redoTxt = new paper.PointText(R_Width * .058, R_Height * .975);
+        redoTxt.insertAbove(R_Path);
+        redoTxt.content = "⤵️";
+        redoTxt.name = 'Undo';
+        
+        var buttonStyleEmoji = {
+          fontFamily: "system-ui",
+          fontWeight: 'bold',
+          fontSize: R_Width*.04,
+          justification: 'center',
+          fillColor: "#171723",
+          strokeColor: "lightgrey",
+        };
+        undoTxt.rotate(90);
+        redoTxt.rotate(90);
+        undoTxt.style = buttonStyleEmoji;
+        redoTxt.style = buttonStyleEmoji;
+        redoTxt.scale(-.8, .8); 
+//         var seperation_beginning = new paper.Point(R_Width*0.15/2, R_Height*0.905);
+//         var separation_end = new paper.Point(R_Width*0.075, R_Height);
+//         var separation_path = new paper.Path.Line(seperation_beginning, separation_end);
+//         separation_path.strokeColor = 'black';
         
         //Click tools for Undo and Redo buttons
     
-        var undoTool = new paper.Tool();   
-        undoTool.onMousedown = function (event) {
-            var hitResult = R_Path.hitTest(event.point, {stroke: true, fill: true, tolerance: 3});
-            console.log(hitResult);
-            if (hitResult) {
-              if (event.point.x >= R_Width*0.7) {
-                console.log("it's to the left");
-                HelperHandlerUndo();
-              } else {
-                HelperHandlerRedo();
-                console.log("to the riiiight");
-              }
-            }
-        }
-        
-        
-        
+//         var undoTool = new paper.Tool();   
+//         undoTool.onMousedown = function (event) {
+//             var hitResult = R_Path.hitTest(event.point, {stroke: true, fill: true, tolerance: 3});
+//             console.log(hitResult);
+//             if (hitResult) {
+//               if (event.point.x >= R_Width*0.7) {
+//                 console.log("it's to the left");
+//                 HelperHandlerUndo();
+//               } else {
+//                 HelperHandlerRedo();
+//                 console.log("to the riiiight");
+//               }
+//             }
+//         }
         
         //Saturation Circles
         var satCircLst = []; //6
-        var SAT_CONSTS = [1.0, .833, .667, .5, .333, .167];
+        var SAT_CONSTS = [1.0, .8, .7, .6, .4, .2];
         for (var i = 0, l = 5; i <= l; i++) {
 	        var color = {
 		      hue: selectedColor.hue,
@@ -208,31 +345,30 @@
 	      };
 	       satCircLst.push(color);
        }
-        
         var circWidth = paper.view.size.width;
         var circHeight = paper.view.size.height;
-        var circStrokeWidth = 5;
-        var cir_1 = new paper.Path.Circle(new paper.Point(circWidth*.97,circHeight*.87),circHeight*0.04);
+        var circStrokeWidth = 3;
+        cir_1 = new paper.Path.Circle(new paper.Point(circWidth*.9735,circHeight*.86),circHeight*0.04);
         cir_1.fillColor = satCircLst[0];
         cir_1.strokeColor =  "#4c4c4c";
         cir_1.strokeWidth = circStrokeWidth;
-        var cir_2 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.75),circHeight*0.04);
+        cir_2 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.75),circHeight*0.04);
         cir_2.fillColor = satCircLst[1];
         cir_2.strokeColor =  "#4c4c4c";
         cir_2.strokeWidth = circStrokeWidth;
-        var cir_3 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.63),circHeight*0.04);
+        cir_3 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.63),circHeight*0.04);
         cir_3.fillColor = satCircLst[2];
         cir_3.strokeColor =  "#4c4c4c";
         cir_3.strokeWidth = circStrokeWidth;
-        var cir_4 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.37),circHeight*0.04);
+        cir_4 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.37),circHeight*0.04);
         cir_4.fillColor = satCircLst[3];
         cir_4.strokeColor =  "#4c4c4c";
         cir_4.strokeWidth = circStrokeWidth;
-        var cir_5 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.25),circHeight*0.04);
+        cir_5 = new paper.Path.Circle(new paper.Point(circWidth*.95,circHeight*.25),circHeight*0.04);
         cir_5.fillColor = satCircLst[4];
         cir_5.strokeColor =  "#4c4c4c";
         cir_5.strokeWidth = circStrokeWidth;
-        var cir_6 = new paper.Path.Circle(new paper.Point(circWidth*.97,circHeight*.13),circHeight*0.04);
+        cir_6 = new paper.Path.Circle(new paper.Point(circWidth*.9735,circHeight*.14),circHeight*0.04);
         cir_6.fillColor = satCircLst[5];
         cir_6.strokeColor =  "#4c4c4c";
         cir_6.strokeWidth = circStrokeWidth;
@@ -250,7 +386,7 @@
 	      };
 	       valBarLst.push(color);
        }
-        var brightBar = new paper.Path();
+        brightBar = new paper.Path();
         brightBar.add(new paper.Point(circWidth*0.88,circHeight*0.5));
         brightBar.add(new paper.Point(circWidth,circHeight*0.5));
         brightBar.strokeColor = 'lightgrey';
@@ -277,14 +413,27 @@
            radius: circWidth*0.039,
          fillColor: selectedColor});
          marker.strokeColor = '#4b4b4b';
-         marker.strokeWidth = 6;
+         marker.strokeWidth = 4;
+        satBox.insertAbove(gradPath);
+        
+        cir_1.insertAbove(satBox);
+        cir_2.insertAbove(satBox);
+        cir_3.insertAbove(satBox);
+        cir_4.insertAbove(satBox);
+        cir_5.insertAbove(satBox);
+        cir_6.insertAbove(satBox);
+        
+        brightBar.insertAbove(satBox);
+        marker.insertAbove(brightBar);
+        //gradPath.sendToBack();
         
         //Drag function to move the brightness circle
         //var brightTool = new paper.Tool();
         //gradTool.insertAbove();
         gradTool.onMouseDrag = function (event) {
-            var hitResult = brightBar.hitTest(event.point, {stroke: true, tolerance: 0});
-            if (hitResult) {
+          //brightness var
+            var brighterHitResult = brightBar.hitTest(event.point, {stroke: true, tolerance: 1});
+            if (brighterHitResult) {
                 if (event.point.x <= circWidth*0.88 || event.point.x >= circWidth) {
                   return;
                 }
@@ -297,28 +446,58 @@
                   brightIndex = 6;
                 }
                 selectedColor.brightness = valBarLst[brightIndex].brightness;
+                update_flag = true;
                 //selectedColor.brightness = valBarLst[brightIndex].brightness;
-                //marker.fillColor = selectedColor;
-                paper.view.draw(); 
+                //paper.view.draw(); 
+              return;
+            }
+          //gradient scroll
+             var hitGradDragon = gradPath.hitTest(event.point, {tolerance: 1, fill: true });
+             if (hitGradDragon) {
+                //var yPtHueIndex = Math.round((event.point.y/paper.view.size.height)*huesLst.length);
+                //var yEndPtHueIndex = Math.round((event.downPoint.y/paper.view.size.height)*huesLst.length);
+                var yDeltaHueIndex = Math.round((event.delta.y/paper.view.size.height)*huesLst.length);
+                selectedHueIndex = Math.round(huesLst.length/2) - yDeltaHueIndex;
+                update_flag = true;
+                hue_update_flag = true;
+                return;
+             }
+          //undo/redo scroll
+           if (R_Path.hitTest(event.point, { tolerance: 20, fill: true })) {
+              if (event.delta.x <= 0) {
+                helperHandlerUndo(); 
+              } else {
+                helperHandlerRedo();
+              }
+              return;
             }
         }
         
-        gradTool.onMouseUp = function (event) {
+        //gradTool.onMouseUp = function (event) {}
+        paper.view.onFrame = function (event) {
           if (update_flag) {
             update_flag = false;
-            
-            //hue changes
-            if (selectedHueIndex > 0 && selectedHueIndex < huesLst.length) {
-              var midIndex = Math.round(huesLst.length/2);
-              huesLst = arrayRotate(huesLst, selectedHueIndex-midIndex);
+            if (hue_update_flag) {
+              var FrameHueLstLen = Math.round(huesLst.length/2);
+              //hue changes
+              if (hue_update_flag && selectedHueIndex != FrameHueLstLen) {
+                if (selectedHueIndex > 0 && selectedHueIndex < huesLst.length) {
+                  var rotOffset = selectedHueIndex - FrameHueLstLen;
+                  huesLst = arrayRotate(huesLst, Math.round(rotOffset));
+                }
+                gradPath.fillColor = {
+                  gradient: {//['red', 'orange', 'yellow', 'lime', 'blue', 'purple']
+                  stops: huesLst
+                },
+                  origin: gradPath.bounds.topCenter,
+                  destination: gradPath.bounds.bottomCenter
+                }; 
+                hue_update_flag = false; 
             }
-            gradPath.fillColor = {
-              gradient: {//['red', 'orange', 'yellow', 'lime', 'blue', 'purple']
-              stops: huesLst
-            },
-              origin: gradPath.bounds.topCenter,
-              destination: gradPath.bounds.bottomCenter
-            };
+            var hsvColorA = huesLst[Math.round(huesLst.length/2)];
+            var colorObj = new paper.Color(hsvColorA);
+            selectedColor.hue = colorObj.hue;
+            }
             
             //saturation
             
@@ -351,7 +530,6 @@
 	          };
 	          valBarLst.push(color);
             }
-            marker.fillColor = selectedColor;
             
             brightBar.strokeColor = {
               gradient: {//['red', 'orange', 'yellow', 'lime', 'blue', 'purple']
@@ -362,13 +540,13 @@
            };
             
             
-            
+            marker.fillColor = selectedColor;
             //at the end!!!
             paper.view.draw();
           }
         }
         
-        
+      gradTool.mindistance = paper.view.height*.012;  
         
 			}
       // Returns a brightness list of a certain hue given hueVal with constant saturation 1.
@@ -482,26 +660,41 @@
           location: coords, //[x, y]
 				  actionName: name //"color", "undo", "redo", "erase"
         }
-        _UNDO_STACK += currAction;
+        _UNDO_STACK.push(currAction);
+      }
+      
+      function helperStoreRedoAction(prevColor, currColor, coords, name) {
+        var currAction = {
+				  prev: prevColor, 
+          curr: currColor, 
+          location: coords, //[x, y]
+				  actionName: name //"color", "undo", "redo", "erase"
+        }
+        _REDO_STACK.push(currAction);
       }
       
       function helperHandlerRedo() { //find last undo and redo it as redo action
-        if (_UNDO_STACK.length > 0) {
-          if (_UNDO_STACK[_UNDO_STACK.length-1].name == "undo") {
-            helperHandlerUndo();
+        if (_REDO_STACK.length > 0) {
+          if (_REDO_STACK[_REDO_STACK.length-1]) {
+            var redoAction = _REDO_STACK.pop();
+            var hit = mandala.item.hitTest(redoAction.location, { tolerance: 5, fill: true });
+            if (hit) {
+              hit.item.fillColor = redoAction.prev;
+              helperStoreAction(redoAction.curr, redoAction.prev, redoAction.location, "redo");
+            }
           }
         }
       }
       
       function helperHandlerUndo() {
-        if (_UNDO_STACK.length == 0) {
+        if (_UNDO_STACK.length <= 0) {
           return;
         }
         var undoAction = _UNDO_STACK.pop();
         var hit = mandala.item.hitTest(undoAction.location, { tolerance: 5, fill: true });
         if (hit) {
           hit.item.fillColor = undoAction.prev;
-          helperStoreAction(undoAction.curr, undoAction.prev, undoAction.location, "undo");
+          helperStoreRedoAction(undoAction.curr, undoAction.prev, undoAction.location, "undo");
         }
       }
       
@@ -516,16 +709,16 @@
 
 			function init(custom){
 				paper.setup(canvas);
-
-				paper.project.importSVG(mandala.filePath, function(item) { 
+				var itemContext = paper.project.importSVG(mandala.filePath, function(item) { 
 					mandala.item = item._children["design-freepik"];
-				    paper.project.insertLayer(0,mandala.item);
+          mandala.item.position = new paper.Point(paper.view.size.width/2.2, paper.view.size.height/2);
+          mandala.item.scale(.78,.78);
+				  paper.project.insertLayer(0,mandala.item);
 
-				    if (custom) {
+				  if (custom) {
            //   paper.project.importSVG(brushed.filePath);
-				    	myCustomInteraction();	
-				    }
-					
+				    myCustomInteraction();	
+				  }
 				}); 
 			}
 
@@ -538,7 +731,7 @@
 				init(false);
 			} else {
 				init(true);
-			}
+			}//resize="true" data-paper-resize="true"
 		}
 	</script>
 </head>
